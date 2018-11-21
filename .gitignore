@@ -1,0 +1,12 @@
+main.tf.bkup
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars.bkup
+.terraform
+modules/v1/files/wordpress.retry
+modules/v1/files/route53
+main.tf
+main.tf.all
+modules/v1/generated
+.terraform.tfstate.lock.info
+playbooks/provision.retry

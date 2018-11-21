@@ -1,0 +1,56 @@
+- name: Create config directory
+  file:
+   path: /etc/kubernetes/config
+   state: directory
+   mode: 0755
+  when: "'controller' in group_names"
+- name: Get Kubernetes Control Plane Binaries
+  get_url:
+   url: "{{ item }}"
+   dest: /home/ansible/
+  with_items:
+   - https://storage.googleapis.com/kubernetes-release/release/v1.10.2/bin/linux/amd64/kube-apiserver
+   - https://storage.googleapis.com/kubernetes-release/release/v1.10.2/bin/linux/amd64/kube-controller-manager
+   - https://storage.googleapis.com/kubernetes-release/release/v1.10.2/bin/linux/amd64/kube-scheduler
+   - https://storage.googleapis.com/kubernetes-release/release/v1.10.2/bin/linux/amd64/kubectl
+  when: "'controller' in group_names"
+- name: Make binaries executable
+  file:
+   path: /home/ansible/{{item}}
+   owner: ansible
+   group: ansible
+   mode: 0700
+  with_items: 
+   - [ 'kube-apiserver', 'kube-controller-manager', 'kube-scheduler', 'kubectl']
+  when: "'controller' in group_names"
+- name: Move binaries to /usr/local/bin
+  command: mv kube-apiserver kube-controller-manager kube-scheduler kubectl /usr/local/bin/
+  when: "'controller' in group_names"
+- name: Setup Kubernetes API Server
+  file:
+   path: /var/lib/kubernetes/
+   state: directory
+   mode: 0755
+  when: "'controller' in group_names"
+- name: Copy Certificate files
+  copy:
+   src: ~/Documents/kthw/modules/v1/scripts/{{ item }}
+   dest: /var/lib/kubernetes/
+   owner: ansible
+   group: ansible
+   mode: 0664
+  with_items:
+   - ['ca.pem', 'admin.kubeconfig', 'ca-key.pem', 'kubernetes-key.pem', 'kubernetes.pem', 'service-account-key.pem', 'kube-scheduler.kubeconfig', 'service-account.pem', 'kube-controller-manager.kubeconfig', 'encryption-config.yaml']
+  when: "'controller' in group_names"
+- name: Generate the kube-apiserver unit file for systemd
+  script: ../kube-apiserver.sh
+  when: "'controller' in group_names"
+- name: Start and enable all of the services
+  shell: |
+   systemctl daemon-reload
+   systemctl enable kube-apiserver kube-controller-manager kube-scheduler
+   systemctl start kube-apiserver kube-controller-manager kube-scheduler
+  when: "'controller' in group_names"
+- name: Verify status of services
+  command: systemctl status kube-apiserver kube-controller-manager kube-scheduler
+  when: "'controller' in group_names"

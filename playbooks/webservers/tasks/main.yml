@@ -1,0 +1,47 @@
+- name: Create ansible and wheel groups
+  group:
+   name: "{{ item }}"
+   state: present
+  with_items:
+   - ['ansible', 'wheel']
+- name: Allow wheel group to have passwordless sudo
+  lineinfile:
+   path: /etc/sudoers
+   state: present
+   insertafter: '^# Members of the admin group may gain root privileges'
+   line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+- name: Create a login user
+  user:
+   name: ansible
+   password: '$5$ar9p1iPq/iT3xLyJ$vpNGBwVjJmeJQOpi4b.2SmZ52CPkKQRH2HRrgMe2qQB'
+   groups: kube, wheel
+   append: yes
+   state: present
+   shell: /bin/bash
+- name: Set authorized key
+  authorized_key:
+   user: ansible
+   state: present
+   key: "{{ lookup('file', '/Users/andeladeveloper/.ssh/kryptonite.pub')}}"
+- name: Copy config files to worker nodes
+  copy:
+   src: ~/Documents/kthw/modules/v1/scripts/{{ item }}
+   dest: /home/ansible/
+   owner: ansible
+   group: ansible
+   mode: 0664
+  with_items:
+   - ['ca.pem', 'ec2-54-81-23-235.compute-1.amazonaws.com-key.pem', 'ec2-54-81-23-235.compute-1.amazonaws.com.pem']
+   - ['kube-proxy.kubeconfig', 'ec2-54-81-23-235.compute-1.amazonaws.com.kubeconfig', 'ec2-54-88-199-188.compute-1.amazonaws.com.kubeconfig']
+  when: "'worker' in group_names"
+- name: Move config files to controller nodes
+  copy:
+   src: ~/Documents/kthw/modules/v1/scripts/{{ item }}
+   dest: /home/ansible/
+   owner: ansible
+   group: ansible
+   mode: 0664
+  with_items:
+   - ['ca.pem', 'ca-key.pem', 'kubernetes-key.pem', 'kubernetes.pem', 'service-account-key.pem', 'service-account.pem']
+   - ['admin.kubeconfig', 'kube-controller-manager.kubeconfig', kube-scheduler.kubeconfig', 'encryption-config.yaml']
+  when: "'controller' in group_names"

@@ -1,0 +1,31 @@
+- name: Creating the etcd cluster
+  get_url:
+   url: https://github.com/coreos/etcd/releases/download/v3.3.5/etcd-v3.3.5-linux-amd64.tar.gz
+   dest: /home/ansible/
+  when: "'controller' in group_names"
+- name: Extract etcd archive
+  unarchive:
+   src: /home/ansible/etcd-v3.3.5-linux-amd64.tar.gz
+   dest: /home/ansible/
+   remote_src: yes
+  when: "'controller' in group_names"
+- name: Move etcd executables
+  shell: |
+   mv /home/ansible/etcd-v3.3.5-linux-amd64/etcd* /usr/local/bin/
+   mkdir -p /etc/etcd /var/lib/etcd
+   cp ca.pem kubernetes-key.pem kubernetes.pem /etc/etcd/
+  when: "'controller' in group_names"
+- name: Create the systemd unit file
+  script: ../systemd.sh
+  when: "'controller' in group_names"
+- name: Start and enable the etcd service
+  shell: |
+   systemctl daemon-reload
+   systemctl enable etcd
+   systemctl start etcd
+  when: "'controller' in group_names"
+- name: Verify etcd status
+  command: systemctl status etcd
+  when: "'controller' in group_names"
+  register: result
+- debug: var=result

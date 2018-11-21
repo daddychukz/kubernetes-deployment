@@ -1,0 +1,4 @@
+#!/bin/bash
+set -e -x
+apt-get update -y
+apt-get install -y python-pip

@@ -1,0 +1,11 @@
+--- # Add A New User With Authorization
+- hosts: k8s
+  remote_user: ansible
+  become: yes
+  become_method: sudo
+  connection: ssh
+  gather_facts: no
+  roles:
+  #  - webservers
+  #  - etcd_cluster
+   - control_plane
